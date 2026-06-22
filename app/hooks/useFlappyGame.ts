@@ -140,26 +140,36 @@ export function useFlappyGame(): UseFlappyGame {
     if (current === "GAME_OVER") {
       resetWorld();
       stateRef.current = "PLAYING";
+      birdRef.current = { ...birdRef.current, velocity: WORLD.flapImpulse };
+      setBird(birdRef.current);
       setState("PLAYING");
     }
   }, [resetWorld]);
 
   // Loop principal: solo se monta durante PLAYING.
+  // TARGET_FRAME_MS referencia temporal (~16.67ms = 60fps). El factor dt / TARGET
+  // normaliza la física al frame objetivo y se CLAMPEA para evitar saltos visibles
+  // cuando la pestaña estuvo inactiva o el RAF se throttle (evita "Movimiento fluido
+  // sin saltos" comprometido).
+  const TARGET_FRAME_MS = 1000 / 60;
+  const MAX_FRAME_MS = 100; // clamp: nunca simular más de ~6 frames por tick
+
   useEffect(() => {
     if (state !== "PLAYING") return;
-    let frame = 0;
     let raf = 0;
     let lastTime = performance.now();
 
     const tick = (now: number) => {
-      const dt = now - lastTime;
+      const rawDt = now - lastTime;
       lastTime = now;
-      frame += dt;
+      // Clamp para robustez frente a throttling / tab inactiva / frame largo.
+      const dt = Math.min(Math.max(rawDt, 0), MAX_FRAME_MS);
+      const factor = dt / TARGET_FRAME_MS;
 
       // Física del pájaro
       const b = birdRef.current;
-      const velocity = b.velocity + WORLD.gravity * (dt / 16);
-      const positionY = b.positionY + velocity * (dt / 16);
+      const velocity = b.velocity + WORLD.gravity * factor;
+      const positionY = b.positionY + velocity * factor;
       const rotation = Math.max(-0.5, Math.min(1.4, velocity * 0.06));
       const updatedBird: Bird = { positionY, velocity, rotation };
       birdRef.current = updatedBird;
@@ -177,23 +187,25 @@ export function useFlappyGame(): UseFlappyGame {
         ];
       }
 
-      // Mover tuberías y contar puntos
+      // Mover tuberías y contar puntos.
+      // Una sola pasada: marcar `passed` al cruzar el pájaro (X=120) y descartar
+      // tuberías que ya salieron completamente de la pantalla por la izquierda.
       let passedDelta = 0;
-      const movedPipes = pipesRef.current
-        .map((p) => ({ ...p, positionX: p.positionX - WORLD.pipeSpeed * (dt / 16) }))
-        .filter((p) => {
-          if (!p.passed && p.positionX + WORLD.pipeWidth < 120) {
-            passedDelta += 1;
-            return { ...p, passed: true } as Pipe;
-          }
-          return true;
-        })
-        .map((p): Pipe => {
-          if (!p.passed && p.positionX + WORLD.pipeWidth < 120) {
-            return { ...p, passed: true };
-          }
-          return p;
-        });
+      const movedPipes: Pipe[] = [];
+      for (const p of pipesRef.current) {
+        const movedX = p.positionX - WORLD.pipeSpeed * factor;
+        const birdX = 120;
+        const crossedBird =
+          !p.passed && movedX + WORLD.pipeWidth < birdX;
+        const isOffscreen = movedX + WORLD.pipeWidth < -WORLD.pipeWidth;
+        if (isOffscreen) continue; // eliminar de la lista (filter con boolean)
+        if (crossedBird) {
+          passedDelta += 1;
+          movedPipes.push({ ...p, positionX: movedX, passed: true });
+        } else {
+          movedPipes.push({ ...p, positionX: movedX });
+        }
+      }
 
       pipesRef.current = movedPipes;
       if (passedDelta > 0) {
