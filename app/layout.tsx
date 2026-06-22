@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import "./globals.css";
 
-export const metadata = { title: "App" };
+export const metadata = { title: "Flappy Bird" };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
