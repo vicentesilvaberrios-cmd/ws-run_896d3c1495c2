@@ -1,0 +1,25 @@
+{
+  "backend": [],
+  "frontend": [
+    "app/page.tsx: Página principal con estados de juego (START/PLAYING/GAME_OVER), gestión de eventos y renderizado condicional",
+    "app/hooks/useFlappyGame.ts: Hook personalizado para lógica de juego (estado del pájaro, tuberías, puntuación, detección de colisiones)",
+    "app/components/GameCanvas.tsx: Componente Canvas para renderizar pájaro, tuberías y fondos con animación fluida",
+    "app/components/StartScreen.tsx: Pantalla inicial con botón Start para comenzar juego",
+    "app/components/GameOverScreen.tsx: Pantalla de fin de juego con puntuación final y opción de reinicio",
+    "app/components/ScoreDisplay.tsx: Componente para mostrar puntuación actual y máxima durante el juego"
+  ],
+  "acceptance_criteria": [
+    "Al hacer clic, el pájaro sube instantáneamente",
+    "El pájaro cae constantemente cuando no hay input",
+    "Movimiento fluido sin saltos de posición",
+    "Nuevas tuberías cada 1.5 segundos",
+    "Huecos en posición Y aleatoria (rango seguro)",
+    "Tuberías se mueven a velocidad constante",
+    "Puntuación aumenta al pasar tuberías",
+    "Máxima puntuación persiste tras recargar",
+    "Marcadores visibles durante juego y Game Over",
+    "Estado inicial: START con botón visible",
+    "Al colisionar: estado GAME_OVER con puntuación",
+    "Reinicio rápido al tocar en Game Over"
+  ]
+}
